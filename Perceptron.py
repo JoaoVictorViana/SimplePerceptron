@@ -7,9 +7,17 @@ Created: 15/04/2019
 from pandas.core.frame import DataFrame,Series
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 #Constant of expression w_new = w_old + e*N*x
 N = 0.1
+
+def normalize(data):
+    for col in data.columns:
+        min = np.min(data[col])
+        max = np.max(data[col])
+        data[col] = [(data.at[i,col] - min)/(max-min) for i in range(len(data))]
+    return data
 
 def trainTest(input_vectors = None, class_d = None):
     if type(input_vectors) != DataFrame:
@@ -53,17 +61,16 @@ class Perceptron(object):
             data = data.loc[index_random]
             class_d = class_d.loc[index_random]
 
-            index_count = 0
             for index,row in data.iterrows():
                 train_input_vector = np.array([-1] + row.tolist())
                 func_u = np.inner(train_input_vector,self.vector_peso)
                 class_y = 1 if func_u >= 0 else 0
-                error = class_d.iat[index_count] - class_y
-                index_count += 1
+                error = class_d[index] - class_y
                 self.vector_peso = (self.vector_peso +
                                         N * error *
                                              train_input_vector)
-
+                format_plot = 'bo' if class_y == 0 else 'b^'
+                plt.plot(class_y,format_plot)
 
     def predict(self,vector_input):
         predict_list = []
@@ -72,8 +79,8 @@ class Perceptron(object):
             func_u = np.inner(vector,self.vector_peso)
             return True if func_u >= 0 else False
 
-        for number in range(len(vector_input)):
-            vector = np.array([-1] + vector_input.iloc[number].tolist())
+        for index,row in vector_input.iterrows():
+            vector = np.array([-1] + row.tolist())
             func_u = np.inner(vector,self.vector_peso)
             predict_list += [True if func_u >= 0 else False]
         return predict_list
@@ -101,3 +108,38 @@ class Statistic(object):
     def accuracy(model,input_vectors,class_d,realization_count = 20):
         realizations = Statistic.holdOut(model,input_vectors,class_d,realization_count)
         return np.mean(realizations)
+
+    @staticmethod
+    def std(model,input_vectors,class_d,realization_count = 20):
+        realizations = Statistic.holdOut(model,input_vectors,class_d,realization_count)
+        return np.std(realizations)
+
+    @staticmethod
+    def matrix_of_confusion(model,input_vectors,class_d):
+        matriz_confusion = np.array( [[0,0],[0,0]])
+        class_y = model.predict(input_vectors)
+        class_d.index = range(len(class_y)) #reset index of class d
+
+        for index in range(len(class_y)):
+            y = int(class_y[index])
+            d = int(class_d[index])
+            matriz_confusion[d][y] += 1
+
+        return matriz_confusion
+
+    @staticmethod
+    def decision_graph(model):
+        class_true=[]
+        class_false=[]
+        for x1 in np.arange(0,1.0,0.01):
+            for x2 in np.arange(0,1.0,0.01):
+                vector = [x1,x2]
+                y = model.predict(vector)
+                if y:
+                    plt.scatter(x1,x2,c = "#b2f441")
+                else:
+                    plt.scatter(x1,x2,c = "#f4d341")
+        plt.title("Gráfico de Decisão")
+        plt.xlabel("x1")
+        plt.ylabel("x2")
+        plt.show()
