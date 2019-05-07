@@ -16,35 +16,24 @@ def normalize(data):
     for col in data.columns:
         min = np.min(data[col])
         max = np.max(data[col])
-        data[col] = [(data.at[i,col] - min)/(max-min) for i in range(len(data))]
+        data[col] = [(data.at[i,col] - min)/(max-min)
+                        for i in range(len(data))]
     return data
 
 def trainTest(input_vectors = None, class_d = None):
-    if type(input_vectors) != DataFrame:
-        raise Exception("Tipo de dado inválido, só é permitido DataFrame.")
-
-    if type(class_d) != Series:
-        raise Exception("Tipo de dado inválido, só é permitido Series.")
-
-    if len(input_vectors) != len(class_d):
-        raise Exception("O tamanho dos dois dados precisam ser iguais.")
-
-    if input_vectors.empty == False and class_d.empty == False:
         train_x,test_x = _splitData_(input_vectors)
         train_d = class_d.iloc[train_x.index]
         test_d = class_d.drop(train_d.index)
 
         return train_x,test_x,train_d,test_d
-    else:
-        raise Exception("Não é possível passar NoneType como parâmetro.")
 
 def _splitData_(data):
-    index_random = _randomSample_(data,0.8)
+    index_random = _randomIndex_(data,0.8)
     return data.loc[index_random],data.drop(index_random)
 
-def _randomSample_(data,count):
+def _randomIndex_(data,count):
     random_count = int(len(data) * count)
-    return np.random.choice(data.index,random_count,replace = False);
+    return np.random.choice(data.index,random_count,replace = False)
 
 #Simple Perceptron
 class Perceptron(object):
@@ -57,20 +46,16 @@ class Perceptron(object):
         self.vector_peso = np.random.random(1 + data.shape[1])
 
         for count in range(100):
-            index_random = _randomSample_(data,1)
+            index_random = _randomIndex_(data,1)
             data = data.loc[index_random]
             class_d = class_d.loc[index_random]
 
             for index,row in data.iterrows():
-                train_input_vector = np.array([-1] + row.tolist())
-                func_u = np.inner(train_input_vector,self.vector_peso)
+                train_x = np.array([-1] + row.tolist())
+                func_u = np.inner(train_x,self.vector_peso)
                 class_y = 1 if func_u >= 0 else 0
                 error = class_d[index] - class_y
-                self.vector_peso = (self.vector_peso +
-                                        N * error *
-                                             train_input_vector)
-                format_plot = 'bo' if class_y == 0 else 'b^'
-                plt.plot(class_y,format_plot)
+                self.vector_peso = self.vector_peso + N * error * train_x
 
     def predict(self,vector_input):
         predict_list = []
@@ -83,6 +68,7 @@ class Perceptron(object):
             vector = np.array([-1] + row.tolist())
             func_u = np.inner(vector,self.vector_peso)
             predict_list += [True if func_u >= 0 else False]
+
         return predict_list
 
     def getPesos(self):
@@ -106,12 +92,18 @@ class Statistic(object):
 
     @staticmethod
     def accuracy(model,input_vectors,class_d,realization_count = 20):
-        realizations = Statistic.holdOut(model,input_vectors,class_d,realization_count)
+        realizations = Statistic.holdOut(model,
+                                        input_vectors,
+                                        class_d,
+                                        realization_count)
         return np.mean(realizations)
 
     @staticmethod
     def std(model,input_vectors,class_d,realization_count = 20):
-        realizations = Statistic.holdOut(model,input_vectors,class_d,realization_count)
+        realizations = Statistic.holdOut(model,
+                                        input_vectors,
+                                        class_d,
+                                        realization_count)
         return np.std(realizations)
 
     @staticmethod
